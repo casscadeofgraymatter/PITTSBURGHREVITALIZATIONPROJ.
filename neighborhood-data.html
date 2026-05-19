@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neighborhood Data — Pittsburgh Revitalization Project</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #6394c2;
+    --rust: #c0492b;
+    --gold: #e8a427;
+    --sage: #4a7c59;
+    --cream: #f5f0e8;
+    --white: #ffffff;
+    --mid: #6b7280;
+    --dark: #0f1c28;
+    --border: rgba(26,44,61,0.12);
+    --food-bg: rgba(74,124,89,0.1);
+    --food-color: #3a6b47;
+    --green-bg: rgba(74,124,89,0.12);
+    --green-color: #2d5e3a;
+    --housing-bg: rgba(192,73,43,0.09);
+    --housing-color: #a83a21;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--warm-white);
+    color: var(--steel);
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(15,28,40,0.97);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 3rem;
+    height: 64px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: rgba(245,240,232,0.7);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: color 0.2s;
+  }
+
+  .nav-back:hover {
+    color: var(--gold);
+  }
+
+  .nav-back-arrow {
+    font-size: 1rem;
+  }
+
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--cream);
+  }
+
+  .nav-logo span {
+    color: var(--gold);
+  }
+
+  .nav-gis {
+    background: var(--rust);
+    color: white;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 7px 18px;
+    border-radius: 4px;
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: background 0.2s;
+  }
+
+  .nav-gis:hover {
+    background: #a83a21;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    background: var(--dark);
+    padding: 7rem 6rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(rgba(192,73,43,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(192,73,43,0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .page-header-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+  }
+
+  .page-eyebrow {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .page-eyebrow::after {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: var(--gold);
+  }
+
+  .page-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.2rem, 4vw, 3.5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    color: var(--cream);
+    margin-bottom: 1.25rem;
+  }
+
+  .page-header h1 em {
+    color: var(--rust);
+    font-style: normal;
+  }
+
+  .page-header p {
+    font-size: 1rem;
+    line-height: 1.8;
+    color: rgba(245,240,232,0.65);
+    max-width: 640px;
+  }
+
+  .legend-bar {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 2.5rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(245,240,232,0.6);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .legend-dot.food {
+    background: #6dbf8a;
+  }
+
+  .legend-dot.green {
+    background: var(--gold);
+  }
+
+  .legend-dot.housing {
+    background: #e8826b;
+  }
+
+  /* OVERVIEW STATS STRIP */
+  .stats-strip {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .strip-stat {
+    padding: 1.75rem 2rem;
+    border-right: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .strip-stat:last-child {
+    border-right: none;
+  }
+
+  .strip-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .strip-num.rust {
+    color: var(--rust);
+  }
+
+  .strip-num.gold {
+    color: var(--gold);
+  }
+
+  .strip-num.sage {
+    color: var(--sage);
+  }
+
+  .strip-num.steel {
+    color: var(--steel);
+  }
+
+  .strip-label {
+    font-size: 0.78rem;
+    color: var(--mid);
+    line-height: 1.4;
+  }
+
+  /* FILTER BAR */
+  .filter-bar {
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 6rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: sticky;
+    top: 64px;
+    z-index: 90;
+  }
+
+  .filter-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--mid);
+  }
+
+  .filter-btns {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .filter-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--steel);
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover {
+    border-color: var(--rust);
+    color: var(--rust);
+  }
+
+  .filter-btn.active {
+    background: var(--rust);
+    color: white;
+    border-color: var(--rust);
+  }
+
+  /* NEIGHBORHOOD GRID */
+  .nbhd-section {
+    padding: 3rem 6rem 6rem;
+  }
+
+  .nbhd-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  /* INDIVIDUAL CARD */
+  .nbhd-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+
+  .nbhd-card:hover {
+    box-shadow: 0 16px 48px rgba(0,0,0,0.07);
+  }
+
+  .nbhd-card-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    padding: 2rem 2rem 0;
+    gap: 2rem;
+  }
+
+  .nbhd-name-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .nbhd-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--dark);
+  }
+
+  .nbhd-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .nbhd-tag.food {
+    background: var(--food-bg);
+    color: var(--food-color);
+  }
+
+  .nbhd-tag.green {
+    background: var(--green-bg);
+    color: var(--green-color);
+  }
+
+  .nbhd-tag.housing {
+    background: var(--housing-bg);
+    color: var(--housing-color);
+  }
+
+  .nbhd-tag-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .nbhd-summary {
+    font-size: 0.92rem;
+    color: var(--mid);
+    line-height: 1.75;
+    max-width: 680px;
+  }
+
+  /* SCORES GRID */
+  .nbhd-scores {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    gap: 1rem;
+    align-self: start;
+  }
+
+  .score-box {
+    background: var(--cream);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    text-align: center;
+    min-width: 100px;
+    border: 1px solid var(--border);
+  }
+
+  .score-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .score-val.danger {
+    color: var(--rust);
+  }
+
+  .score-val.warning {
+    color: var(--gold);
+  }
+
+  .score-val.ok {
+    color: var(--sage);
+  }
+
+  .score-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mid);
+  }
+
+  /* CARD BODY */
+  .nbhd-card-body {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 0;
+    border-top: 1px solid var(--border);
+    margin-top: 1.75rem;
+  }
+
+  .nbhd-data-panel {
+    padding: 1.75rem 2rem;
+    border-right: 1px solid var(--border);
+  }
+
+  .data-section-title {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--mid);
+    margin-bottom: 1rem;
+    font-weight: 500;
+  }
+
+  /* METRIC ROWS */
+  .metric-group {
+    margin-bottom: 1.75rem;
+  }
+
+  .metric-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid rgba(26,44,61,0.06);
+    gap: 1rem;
+  }
+
+  .metric-row:last-child {
+    border-bottom: none;
+  }
+
+  .metric-key {
+    font-size: 0.83rem;
+    color: var(--steel);
+  }
+
+  .metric-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .metric-val {
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--dark);
+    text-align: right;
+  }
+
+  .metric-bar-wrap {
+    width: 80px;
+    height: 4px;
+    background: rgba(26,44,61,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .metric-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s;
+  }
+
+  .metric-bar.danger {
+    background: var(--rust);
+  }
+
+  .metric-bar.warning {
+    background: var(--gold);
+  }
+
+  .metric-bar.ok {
+    background: var(--sage);
+  }
+
+  /* RECOMMEND SECTION */
+  .recommend-group {
+    margin-top: 1.75rem;
+  }
+
+  .recommend-items {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  .recommend-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid;
+  }
+
+  .recommend-pill.food {
+    background: var(--food-bg);
+    color: var(--food-color);
+    border-color: rgba(74,124,89,0.2);
+  }
+
+  .recommend-pill.green {
+    background: var(--green-bg);
+    color: var(--green-color);
+    border-color: rgba(74,124,89,0.2);
+  }
+
+  .recommend-pill.housing {
+    background: var(--housing-bg);
+    color: var(--housing-color);
+    border-color: rgba(192,73,43,0.15);
+  }
+
+  .recommend-pill.community {
+    background: rgba(232,164,39,0.08);
+    color: #966c0e;
+    border-color: rgba(232,164,39,0.2);
+  }
+
+  /* GIS LINKS */
+  .gis-links {
+    margin-top: 1.75rem;
+  }
+
+  .gis-link-list {
+    list-style: none;
+    margin-top: 0.5rem;
+  }
+
+  .gis-link-list li {
+    padding: 4px 0;
+  }
+
+  .gis-link-list a {
+    font-size: 0.8rem;
+    color: var(--rust);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .gis-link-list a:hover {
+    border-color: var(--rust);
+  }
+
+  /* MAP PANEL */
+  .nbhd-map-panel {
+    position: relative;
+    background: #1a2c3d;
+    min-height: 320px;
+  }
+
+  .nbhd-map-panel iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 360px;
+    border: none;
+    display: block;
+  }
+
+  .map-overlay-label {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 2;
+    background: rgba(15,28,40,0.85);
+    color: var(--gold);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 5px 12px;
+    border-radius: 3px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(232,164,39,0.25);
+    pointer-events: none;
+  }
+
+  .map-gis-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 2;
+    background: white;
+    color: var(--rust);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 4px;
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid rgba(192,73,43,0.2);
+    transition: background 0.15s;
+  }
+
+  .map-gis-btn:hover {
+    background: var(--cream);
+  }
+
+  /* ACTIVE ORG CALLOUT */
+  .active-org {
+    background: linear-gradient(90deg, rgba(26,44,61,0.04) 0%, transparent 100%);
+    border-left: 3px solid var(--gold);
+    padding: 0.75rem 1rem;
+    border-radius: 0 6px 6px 0;
+    margin-top: 1.25rem;
+  }
+
+  .active-org-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--mid);
+    margin-bottom: 4px;
+  }
+
+  .active-org-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--dark);
+  }
+
+  .active-org-desc {
+    font-size: 0.8rem;
+    color: var(--mid);
+    margin-top: 2px;
+    line-height: 1.5;
+  }
+
+  /* VACANT PULSE */
+  .vacant-pulse {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0.75rem;
+  }
+
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--rust);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.4);
+    }
+  }
+
+  .pulse-text {
+    font-size: 0.78rem;
+    color: var(--mid);
+  }
+
+  .pulse-text strong {
+    color: var(--rust);
+    font-family: 'Playfair Display', serif;
+    font-size: 0.95rem;
+  }
+
+  /* FOOTER */
+  .page-footer {
+    background: var(--dark);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding: 2.5rem 6rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: var(--cream);
+    font-weight: 700;
+  }
+
+  .footer-logo span {
+    color: var(--gold);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .footer-links a {
+    color: rgba(245,240,232,0.4);
+    text-decoration: none;
+    font-size: 0.78rem;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover {
+    color: var(--cream);
+  }
+
+  .footer-credit {
+    font-size: 0.72rem;
+    color: rgba(245,240,232,0.25);
+  }
+
+  @media (max-width: 1100px) {
+    .page-header,
+    .nbhd-section {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+
+    .filter-bar {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+
+    .stats-strip {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .nbhd-card-body {
+      grid-template-columns: 1fr;
+    }
+
+    .nbhd-map-panel {
+      min-height: 250px;
+    }
+
+    .nbhd-card-header {
+      grid-template-columns: 1fr;
+    }
+
+    .nbhd-scores {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    nav {
+      padding: 0 1.5rem;
+    }
+
+    .page-footer {
+      flex-direction: column;
+      gap: 1.5rem;
+      padding: 2rem;
+      text-align: center;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="pittsburgh-revitalization.html" class="nav-back">
+    <span class="nav-back-arrow">←</span> Back to Home
+  </a>
+  <div class="nav-logo">Pittsburgh <span>Revitalization</span> Project</div>
+  <a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/" target="_blank" class="nav-gis">Open GIS Hub →</a>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-eyebrow">Neighborhood Data Dashboard</div>
+    <h1>8 Neighborhoods.<br><em>One Crisis.</em> Many Solutions.</h1>
+    <p>Each neighborhood below is profiled with vacancy data, food access distance, green space scores, and location-matched revitalization recommendations — cross-referenced with Pittsburgh GIS Hub open datasets and peer-reviewed reporting.</p>
+    <div class="legend-bar">
+      <div class="legend-item"><div class="legend-dot food"></div> Food Desert Priority</div>
+      <div class="legend-item"><div class="legend-dot green"></div> Green Space Gap</div>
+      <div class="legend-item"><div class="legend-dot housing"></div> Housing Crisis</div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="strip-stat">
+    <span class="strip-num rust">~40%</span>
+    <div class="strip-label">Average vacancy rate across these 8 neighborhoods — vs. 10% Pittsburgh average</div>
+  </div>
+  <div class="strip-stat">
+    <span class="strip-num gold">7 of 8</span>
+    <div class="strip-label">Neighborhoods classified as food deserts by USDA or Pittsburgh city data</div>
+  </div>
+  <div class="strip-stat">
+    <span class="strip-num sage">49%</span>
+    <div class="strip-label">Less park space available to residents of color vs. white neighborhoods (Trust for Public Land, 2025)</div>
+  </div>
+  <div class="strip-stat">
+    <span class="strip-num steel">1,200+</span>
+    <div class="strip-label">Properties in active revitalization pipeline across these neighborhoods combined</div>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <span class="filter-label">Filter by:</span>
+  <div class="filter-btns">
+    <button class="filter-btn active" onclick="filterCards('all', this)">All 8</button>
+    <button class="filter-btn" onclick="filterCards('food', this)">Food Desert</button>
+    <button class="filter-btn" onclick="filterCards('green', this)">Green Space Gap</button>
+    <button class="filter-btn" onclick="filterCards('housing', this)">Housing Crisis</button>
+  </div>
+</div>
+
+<!-- NEIGHBORHOOD CARDS -->
+<div class="nbhd-section">
+<div class="nbhd-cards" id="cards-container">
+
+  <!-- 1. HOMEWOOD -->
+  <div class="nbhd-card" data-type="food" id="homewood">
+    <div class="nbhd-card-header">
+      <div class="nbhd-header-left">
+        <div class="nbhd-name-row">
+          <h2 class="nbhd-title">Homewood</h2>
+          <span class="nbhd-tag food"><span class="nbhd-tag-dot"></span>Food Desert</span>
+        </div>
+        <p class="nbhd-summary">Once a thriving commercial corridor with multiple grocery stores, Homewood has spent decades with zero full-service supermarkets. The neighborhood — technically three sub-neighborhoods (Homewood North, South, West) — saw 2 in 5 housing units vacant by recent census estimates. Rising Tide Partners' acquisition of 93 Hamilton Avenue properties marks the most significant community-led revitalization push in decades.</p>
+        <div class="vacant-pulse">
+          <div class="pulse-dot"></div>
+          <div class="pulse-text"><strong>93+</strong> properties under active Rising Tide Partners revitalization as of May 2025</div>
+        </div>
+        <div class="active-org">
+          <div class="active-org-label">Lead Organization</div>
+          <div class="active-org-name">Rising Tide Partners + Homewood Community Development Collaborative</div>
+          <div class="active-org-desc">Acquired 93 properties on a 6-block Hamilton Ave corridor. Redevelopment guided by the Homewood Comprehensive Community Plan with direct resident governance.</div>
+        </div>
+      </div>
+      <div class="nbhd-scores">
+        <div class="score-box">
+          <span class="score-val danger">40%</span>
+          <div class="score-label">Vacancy Rate<br>(Homewood South)</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val danger">0</span>
+          <div class="score-label">Grocery Stores<br>in Neighborhood</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val warning">3/10</span>
+          <div class="score-label">Green Space<br>Access Score</div>
+        </div>
+      </div>
+    </div>
+    <div class="nbhd-card-body">
+      <div class="nbhd-data-panel">
+        <div class="metric-group">
+          <div class="data-section-title">Vacancy & Housing</div>
+          <div class="metric-row">
+            <span class="metric-key">Homewood South vacancy rate</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:80%"></div></div><span class="metric-val">~40%</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Homewood North vacancy rate</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:60%"></div></div><span class="metric-val">~30%</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Tax-delinquent properties (2009)</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:100%"></div></div><span class="metric-val">57% of taxable</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Properties in revitalization pipeline</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar ok" style="width:60%"></div></div><span class="metric-val">93 active</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Food Access</div>
+          <div class="metric-row">
+            <span class="metric-key">Full-service grocery stores</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">0 in neighborhood</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Distance to nearest supermarket</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:90%"></div></div><span class="metric-val">&gt;1.5 miles (East Liberty)</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">USDA food desert classification</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">Confirmed</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Food insecurity rate estimate</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:85%"></div></div><span class="metric-val">33–50%</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Green Space</div>
+          <div class="metric-row">
+            <span class="metric-key">Accessible public parks within 0.5mi</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar warning" style="width:30%"></div></div><span class="metric-val">Limited</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Community garden sites active</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">Homewood Historical Farm</span></div>
+          </div>
+        </div>
+        <div class="recommend-group">
+          <div class="data-section-title">Recommended Revitalization</div>
+          <div class="recommend-items">
+            <span class="recommend-pill food">🌽 Urban Farm / Food Market</span>
+            <span class="recommend-pill housing">🏘 Affordable Housing Rehab</span>
+            <span class="recommend-pill green">🌳 Pocket Parks on Vacant Lots</span>
+          </div>
+        </div>
+        <div class="gis-links">
+          <div class="data-section-title">GIS Data Links</div>
+          <ul class="gis-link-list">
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.446,-79.893,14" target="_blank">↗ Homewood Neighborhood Boundary (PGH GIS Hub)</a></li>
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/search?q=vacant+properties" target="_blank">↗ Vacant Property Dataset (PGH GIS Hub)</a></li>
+            <li><a href="https://www.wprdc.org/resource/vacant-properties/" target="_blank">↗ WPRDC Vacant Parcel Data</a></li>
+            <li><a href="https://storymaps.arcgis.com/stories/909e567bc6f141c2bac555aaeb034b50" target="_blank">↗ Health & Food Deserts ArcGIS Story Map</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="nbhd-map-panel">
+        <div class="map-overlay-label">Homewood — GIS View</div>
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3034.8!2d-79.8965!3d40.4430!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8834f1e4c5b9a0c1%3A0x8ef7e4bfdb0f0c77!2sHomewood%2C%20Pittsburgh%2C%20PA!5e1!3m2!1sen!2sus!4v1699000000000"
+          allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+        <a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.446,-79.893,14" target="_blank" class="map-gis-btn">Open in GIS Hub ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. EAST HILLS -->
+  <div class="nbhd-card" data-type="food" id="east-hills">
+    <div class="nbhd-card-header">
+      <div class="nbhd-header-left">
+        <div class="nbhd-name-row">
+          <h2 class="nbhd-title">East Hills</h2>
+          <span class="nbhd-tag food"><span class="nbhd-tag-dot"></span>Food Desert</span>
+        </div>
+        <p class="nbhd-summary">Constructed in 1969 as a self-sufficient planned community, East Hills declined sharply in the 1980s–90s as Pittsburgh's economy collapsed. The neighborhood has a 19% real estate vacancy rate — higher than 86% of all U.S. neighborhoods — alongside one of the highest childhood poverty rates in America (75.2% of children below the federal poverty line). Nearest major grocer is a Giant Eagle on Frankstown Road, a car-dependent trip for most residents.</p>
+        <div class="vacant-pulse">
+          <div class="pulse-dot"></div>
+          <div class="pulse-text">East Hills Vision Plan ongoing — addresses blight, infrastructure, and food access</div>
+        </div>
+        <div class="active-org">
+          <div class="active-org-label">Lead Organization</div>
+          <div class="active-org-name">East Hills Consensus Group (EHCG)</div>
+          <div class="active-org-desc">Resident-led organization behind the East Hills Vision Plan targeting blighted housing, park improvements, and business corridor revitalization.</div>
+        </div>
+      </div>
+      <div class="nbhd-scores">
+        <div class="score-box">
+          <span class="score-val danger">19%</span>
+          <div class="score-label">Vacancy Rate<br>(NeighborhoodScout)</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val warning">~1.2mi</span>
+          <div class="score-label">Distance to<br>Nearest Grocery</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val warning">4/10</span>
+          <div class="score-label">Green Space<br>Access Score</div>
+        </div>
+      </div>
+    </div>
+    <div class="nbhd-card-body">
+      <div class="nbhd-data-panel">
+        <div class="metric-group">
+          <div class="data-section-title">Vacancy & Housing</div>
+          <div class="metric-row">
+            <span class="metric-key">Housing vacancy rate</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:40%"></div></div><span class="metric-val">19%</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Children below poverty line</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:100%"></div></div><span class="metric-val">75.2%</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Single-mother households</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:70%"></div></div><span class="metric-val">35%</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Population (est.)</span>
+            <div class="metric-right"><span class="metric-val">~4,542</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Food Access</div>
+          <div class="metric-row">
+            <span class="metric-key">Nearest supermarket</span>
+            <div class="metric-right"><span class="metric-val">Giant Eagle, Frankstown Rd</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Walking distance to grocery</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:65%"></div></div><span class="metric-val">&gt;1 mile</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">USDA food desert classification</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">Confirmed</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Green Space</div>
+          <div class="metric-row">
+            <span class="metric-key">Graham Field (shared w/ Chatham Univ.)</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">Accessible</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Nearby destination parks</span>
+            <div class="metric-right"><span class="metric-val">Mellon Park, Frick Park (~2mi)</span></div>
+          </div>
+        </div>
+        <div class="recommend-group">
+          <div class="data-section-title">Recommended Revitalization</div>
+          <div class="recommend-items">
+            <span class="recommend-pill food">🛒 Community Market / Food Co-op</span>
+            <span class="recommend-pill housing">🏘 Affordable Housing Rehab</span>
+            <span class="recommend-pill community">🏛 Youth & Family Services Hub</span>
+          </div>
+        </div>
+        <div class="gis-links">
+          <div class="data-section-title">GIS Data Links</div>
+          <ul class="gis-link-list">
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.443,-79.869,14" target="_blank">↗ East Hills Boundary (PGH GIS Hub)</a></li>
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/search?q=vacant+properties" target="_blank">↗ Vacant Property Dataset</a></li>
+            <li><a href="https://engage.pittsburghpa.gov/neighborhood-snapshots" target="_blank">↗ City of Pittsburgh Neighborhood Snapshots</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="nbhd-map-panel">
+        <div class="map-overlay-label">East Hills — GIS View</div>
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3034.8!2d-79.869!3d40.443!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8834f1e4d3e1e2ab%3A0x12345!2sEast%20Hills%2C%20Pittsburgh%2C%20PA!5e1!3m2!1sen!2sus!4v1699000000001"
+          allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+        <a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.443,-79.869,14" target="_blank" class="map-gis-btn">Open in GIS Hub ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. LARIMER -->
+  <div class="nbhd-card" data-type="food" id="larimer">
+    <div class="nbhd-card-header">
+      <div class="nbhd-header-left">
+        <div class="nbhd-name-row">
+          <h2 class="nbhd-title">Larimer</h2>
+          <span class="nbhd-tag food"><span class="nbhd-tag-dot"></span>Food Desert</span>
+        </div>
+        <p class="nbhd-summary">Pittsburgh's former "Little Italy," Larimer sits directly adjacent to the booming Bakery Square (home to Google's Pittsburgh offices) yet remains one of the city's most food-insecure neighborhoods. With a 26.6–28% housing vacancy rate, nearly a quarter of all housing sits empty. A $30M HUD Choice Neighborhood grant (2014) funded the Larimer Vision Plan, resulting in Liberty Green Park — a 3-acre green infrastructure park built on formerly vacant land — and new affordable housing construction.</p>
+        <div class="vacant-pulse">
+          <div class="pulse-dot"></div>
+          <div class="pulse-text">Liberty Green Park completed on former vacant lots — model for vacancy-to-green-space conversion</div>
+        </div>
+        <div class="active-org">
+          <div class="active-org-label">Key Programs</div>
+          <div class="active-org-name">Larimer Consensus Group + URA Pittsburgh</div>
+          <div class="active-org-desc">$30M HUD Choice Neighborhood grant drove Liberty Green Park (3+ acres on formerly vacant land) and Larimer Pointe affordable housing development.</div>
+        </div>
+      </div>
+      <div class="nbhd-scores">
+        <div class="score-box">
+          <span class="score-val danger">28%</span>
+          <div class="score-label">Vacancy Rate<br>(PublicSource est.)</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val danger">&gt;1mi</span>
+          <div class="score-label">Distance to<br>Grocery Store</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val ok">5/10</span>
+          <div class="score-label">Green Space<br>Access Score</div>
+        </div>
+      </div>
+    </div>
+    <div class="nbhd-card-body">
+      <div class="nbhd-data-panel">
+        <div class="metric-group">
+          <div class="data-section-title">Vacancy & Housing</div>
+          <div class="metric-row">
+            <span class="metric-key">Housing vacancy rate (NeighborhoodScout)</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:55%"></div></div><span class="metric-val">26.6%</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Vacancy rate (PublicSource census est.)</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:58%"></div></div><span class="metric-val">~28%</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Median home price</span>
+            <div class="metric-right"><span class="metric-val">$92,085</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Historic housing stock (pre-1939)</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar warning" style="width:67%"></div></div><span class="metric-val">66.9%</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Food Access</div>
+          <div class="metric-row">
+            <span class="metric-key">Grocery stores in neighborhood</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">0 full-service</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Liberty Green Park Farmers Market</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">May–Nov (accepts SNAP)</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Distance to East Liberty groceries</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:45%"></div></div><span class="metric-val">~1 mile</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Green Space</div>
+          <div class="metric-row">
+            <span class="metric-key">Liberty Green Park (new)</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">3+ acres, built 2019</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Larimer Community Garden & Urban Farm</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">Active</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Larimer Playground (athletic fields)</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">In neighborhood</span></div>
+          </div>
+        </div>
+        <div class="recommend-group">
+          <div class="data-section-title">Recommended Revitalization</div>
+          <div class="recommend-items">
+            <span class="recommend-pill food">🛒 Permanent Food Market / Co-op</span>
+            <span class="recommend-pill housing">🏘 Historic Home Rehab</span>
+            <span class="recommend-pill green">🌳 Expand Green Infrastructure</span>
+          </div>
+        </div>
+        <div class="gis-links">
+          <div class="data-section-title">GIS Data Links</div>
+          <ul class="gis-link-list">
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.459,-79.912,14" target="_blank">↗ Larimer Boundary (PGH GIS Hub)</a></li>
+            <li><a href="https://storymaps.arcgis.com/stories/939019622c8345adbf9754e069eea969" target="_blank">↗ Larimer ArcGIS Story Map</a></li>
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/search?q=parks" target="_blank">↗ Pittsburgh Parks Dataset</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="nbhd-map-panel">
+        <div class="map-overlay-label">Larimer — GIS View</div>
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3034.0!2d-79.912!3d40.459!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8834f1e4c5b9a0d1%3A0xabc!2sLarimer%2C%20Pittsburgh%2C%20PA!5e1!3m2!1sen!2sus!4v1699000000002"
+          allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+        <a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.459,-79.912,14" target="_blank" class="map-gis-btn">Open in GIS Hub ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. KNOXVILLE -->
+  <div class="nbhd-card" data-type="green" id="knoxville">
+    <div class="nbhd-card-header">
+      <div class="nbhd-header-left">
+        <div class="nbhd-name-row">
+          <h2 class="nbhd-title">Knoxville</h2>
+          <span class="nbhd-tag green"><span class="nbhd-tag-dot"></span>Green Space Gap</span>
+        </div>
+        <p class="nbhd-summary">Part of Pittsburgh's Hilltop community, Knoxville sits on steep terrain that limits flat developable land and accessible parkspace. Named alongside Allentown, Arlington, and Homewood as one of Pittsburgh's most food-insecure neighborhoods by Just Harvest. The Hilltop Alliance completed a 2021 property redevelopment report specifically for Knoxville and created the Knoxville Incline Greenway from former vacant lots, demonstrating how vacancy can become green infrastructure in this topographically constrained neighborhood.</p>
+        <div class="vacant-pulse">
+          <div class="pulse-dot"></div>
+          <div class="pulse-text">Knoxville Incline Greenway created from former overgrown vacant lots between Arlington Ave and Brosville St</div>
+        </div>
+        <div class="active-org">
+          <div class="active-org-label">Lead Organization</div>
+          <div class="active-org-name">Hilltop Alliance + Knoxville Community Council</div>
+          <div class="active-org-desc">2021 "Opportunities for Property Redevelopment in Knoxville" report guides acquisition strategy. 15 vacant lots converted to wildflower gardens across the Hilltop.</div>
+        </div>
+      </div>
+      <div class="nbhd-scores">
+        <div class="score-box">
+          <span class="score-val warning">Moderate</span>
+          <div class="score-label">Vacancy Rate<br>(Hilltop-wide)</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val danger">&gt;1mi</span>
+          <div class="score-label">Distance to<br>Grocery Store</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val danger">3/10</span>
+          <div class="score-label">Green Space<br>Access Score</div>
+        </div>
+      </div>
+    </div>
+    <div class="nbhd-card-body">
+      <div class="nbhd-data-panel">
+        <div class="metric-group">
+          <div class="data-section-title">Vacancy & Housing</div>
+          <div class="metric-row">
+            <span class="metric-key">Hilltop-wide vacancy estimate</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar warning" style="width:50%"></div></div><span class="metric-val">Moderate–High</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Properties submitted to City Property Reserve</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">46 (as of 2020)</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Redevelopment report</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">Completed 2021</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Food Access</div>
+          <div class="metric-row">
+            <span class="metric-key">USDA Hilltop food desert classification</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">Confirmed</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Food insecurity rate (Hilltop)</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:85%"></div></div><span class="metric-val">33–50% residents</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Brownsville Rd (nearest commercial strip)</span>
+            <div class="metric-right"><span class="metric-val">Limited grocery options</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Hilltop Urban Farm (produce supply)</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">107 acres, St. Clair</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Green Space</div>
+          <div class="metric-row">
+            <span class="metric-key">McKinley Park (planned improvements)</span>
+            <div class="metric-right"><span class="metric-val">85 acres, Beltzhoover-adjacent</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Knoxville Incline Greenway</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">New — built on vacant lots</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Wildflower lots converted</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">15 across Hilltop</span></div>
+          </div>
+        </div>
+        <div class="recommend-group">
+          <div class="data-section-title">Recommended Revitalization</div>
+          <div class="recommend-items">
+            <span class="recommend-pill green">🌳 Pocket Parks & Rain Gardens</span>
+            <span class="recommend-pill food">🌽 Urban Farm Expansion</span>
+            <span class="recommend-pill community">🏛 Community Hub + Services</span>
+          </div>
+        </div>
+        <div class="gis-links">
+          <div class="data-section-title">GIS Data Links</div>
+          <ul class="gis-link-list">
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.413,-80.007,14" target="_blank">↗ Knoxville Boundary (PGH GIS Hub)</a></li>
+            <li><a href="https://www.pghhilltopalliance.org/openspace" target="_blank">↗ Hilltop Alliance Open Space Projects</a></li>
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/search?q=parks+greenways" target="_blank">↗ Pittsburgh Greenways Dataset</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="nbhd-map-panel">
+        <div class="map-overlay-label">Knoxville — GIS View</div>
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3036.8!2d-80.007!3d40.413!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8834f34d!2sKnoxville%2C%20Pittsburgh%2C%20PA!5e1!3m2!1sen!2sus!4v1699000000003"
+          allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+        <a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.413,-80.007,14" target="_blank" class="map-gis-btn">Open in GIS Hub ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. WILKINSBURG -->
+  <div class="nbhd-card" data-type="housing" id="wilkinsburg">
+    <div class="nbhd-card-header">
+      <div class="nbhd-header-left">
+        <div class="nbhd-name-row">
+          <h2 class="nbhd-title">Wilkinsburg</h2>
+          <span class="nbhd-tag housing"><span class="nbhd-tag-dot"></span>Housing Crisis</span>
+        </div>
+        <p class="nbhd-summary">Adjacent to Pittsburgh's eastern edge, Wilkinsburg Borough has one of the most severe vacancy situations in Allegheny County. Once home to 31,000 residents (1950), the borough now houses approximately 11,334–14,000 people — a population loss of more than half. Nearly 20% of all buildings — over 1,000 parcels — are vacant or derelict, alongside 600+ empty lots. The homeownership rate (32%) is less than half the metro average. Community gardens have begun reclaiming demolished sites as ecological habitat and food production space.</p>
+        <div class="vacant-pulse">
+          <div class="pulse-dot"></div>
+          <div class="pulse-text"><strong>1,066+</strong> documented vacant properties — nearly 15% of total property stock</div>
+        </div>
+        <div class="active-org">
+          <div class="active-org-label">Lead Organization</div>
+          <div class="active-org-name">Revitalize Wilkinsburg + Wilkinsburg CDC</div>
+          <div class="active-org-desc">North Avenue Bird Habitat & Hamnett Place Community Garden convert demolished sites. Revitalize Wilkinsburg leads real estate redevelopment strategy for the borough.</div>
+        </div>
+      </div>
+      <div class="nbhd-scores">
+        <div class="score-box">
+          <span class="score-val danger">19%</span>
+          <div class="score-label">Housing Vacancy<br>(vs 9.4% metro avg)</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val warning">~0.8mi</span>
+          <div class="score-label">Distance to<br>Grocery Store</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val warning">4/10</span>
+          <div class="score-label">Green Space<br>Access Score</div>
+        </div>
+      </div>
+    </div>
+    <div class="nbhd-card-body">
+      <div class="nbhd-data-panel">
+        <div class="metric-group">
+          <div class="data-section-title">Vacancy & Housing</div>
+          <div class="metric-row">
+            <span class="metric-key">Vacant / derelict parcels (2023 CDC data)</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:80%"></div></div><span class="metric-val">&gt;1,000</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Empty lots (additional)</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:50%"></div></div><span class="metric-val">~600</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Homeownership rate</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:32%"></div></div><span class="metric-val">32% (vs ~70% metro)</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Median household income</span>
+            <div class="metric-right"><span class="metric-val">$39,793 (59% of county median)</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Population loss since 1950</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:55%"></div></div><span class="metric-val">&gt;55%</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Food Access</div>
+          <div class="metric-row">
+            <span class="metric-key">Garden Dreams Urban Farm & Nursery</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">Active in Wilkinsburg</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Hamnett Place Community Garden</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">Native plants + food crops</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Green Space</div>
+          <div class="metric-row">
+            <span class="metric-key">North Ave Bird Habitat & Pollinator Garden</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">Built on demo site</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Community garden sites</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">Multiple active</span></div>
+          </div>
+        </div>
+        <div class="recommend-group">
+          <div class="data-section-title">Recommended Revitalization</div>
+          <div class="recommend-items">
+            <span class="recommend-pill housing">🏘 Bulk Housing Acquisition + Rehab</span>
+            <span class="recommend-pill green">🌿 Ecological Restoration / Habitat</span>
+            <span class="recommend-pill food">🌽 Food Production on Demo Sites</span>
+          </div>
+        </div>
+        <div class="gis-links">
+          <div class="data-section-title">GIS Data Links</div>
+          <ul class="gis-link-list">
+            <li><a href="https://www.alleghenycounty.us/Projects-and-Initiatives/Economic-Development/Residents-Housing-Support/Vacant-Property-Recovery-Program" target="_blank">↗ Allegheny Co. Vacant Property Recovery Program</a></li>
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/search?q=vacant+properties" target="_blank">↗ Vacant Property Dataset (WPRDC)</a></li>
+            <li><a href="https://engage.pittsburghpa.gov/neighborhood-snapshots" target="_blank">↗ Pittsburgh Neighborhood Snapshots</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="nbhd-map-panel">
+        <div class="map-overlay-label">Wilkinsburg — GIS View</div>
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3034.2!2d-79.864!3d40.444!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8834f1!2sWilkinsburg%2C%20PA!5e1!3m2!1sen!2sus!4v1699000000004"
+          allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+        <a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.444,-79.864,14" target="_blank" class="map-gis-btn">Open in GIS Hub ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. ARLINGTON -->
+  <div class="nbhd-card" data-type="food" id="arlington">
+    <div class="nbhd-card-header">
+      <div class="nbhd-header-left">
+        <div class="nbhd-name-row">
+          <h2 class="nbhd-title">Arlington</h2>
+          <span class="nbhd-tag food"><span class="nbhd-tag-dot"></span>Food Desert</span>
+        </div>
+        <p class="nbhd-summary">One of 14 neighborhoods that Just Harvest prioritizes for food access intervention, Arlington sits on the Hilltop with significant topographic barriers between residents and groceries. The combination of steep terrain, limited transit, and high rates of car-free households creates extreme food access difficulty. The Pittsburgh Post-Gazette documented a resident walking to a dollar store for white milk and being told only chocolate was available — a vivid illustration of daily food desert reality. The Hilltop Urban Farm (107 acres, 23 in active production) is a key asset nearby.</p>
+        <div class="vacant-pulse">
+          <div class="pulse-dot"></div>
+          <div class="pulse-text">Hilltop Urban Farm — 107 acres total, 23 acres active farming — supplies local food pantries</div>
+        </div>
+        <div class="active-org">
+          <div class="active-org-label">Lead Organization</div>
+          <div class="active-org-name">Hilltop Alliance + Brashear Association</div>
+          <div class="active-org-desc">Hilltop Urban Farm (USDA-confirmed food desert site) supplies South Side food pantries. Brashear Association provides wrap-around services and food access programs for Arlington residents.</div>
+        </div>
+      </div>
+      <div class="nbhd-scores">
+        <div class="score-box">
+          <span class="score-val warning">Moderate</span>
+          <div class="score-label">Vacancy Rate<br>(Hilltop range)</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val danger">&gt;1.5mi</span>
+          <div class="score-label">Distance to<br>Grocery Store</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val warning">4/10</span>
+          <div class="score-label">Green Space<br>Access Score</div>
+        </div>
+      </div>
+    </div>
+    <div class="nbhd-card-body">
+      <div class="nbhd-data-panel">
+        <div class="metric-group">
+          <div class="data-section-title">Vacancy & Housing</div>
+          <div class="metric-row">
+            <span class="metric-key">Just Harvest priority neighborhood</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">Yes — Top 14</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Hilltop Alliance property stabilization cases</span>
+            <div class="metric-right"><span class="metric-val">107 residences assisted</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Facade grants issued (Allentown/Arlington area)</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">11 residential</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Food Access</div>
+          <div class="metric-row">
+            <span class="metric-key">USDA food desert classification</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">Confirmed</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Food insecurity rate (Hilltop-wide)</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:85%"></div></div><span class="metric-val">33–50% residents</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Car-free households — food access difficulty</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">Severe (steep terrain)</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Hilltop Urban Farm monthly produce output</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">10,000 people / 40 lbs each</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Green Space</div>
+          <div class="metric-row">
+            <span class="metric-key">Friends of South Side Park</span>
+            <div class="metric-right"><span class="metric-val">South Side Slopes/Arlington border</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Wildflower lots converted (Hilltop)</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">15 across Hilltop neighborhoods</span></div>
+          </div>
+        </div>
+        <div class="recommend-group">
+          <div class="data-section-title">Recommended Revitalization</div>
+          <div class="recommend-items">
+            <span class="recommend-pill food">🌽 Urban Farm / Community Garden</span>
+            <span class="recommend-pill food">🛒 Corner Market Upgrade</span>
+            <span class="recommend-pill community">🏛 Community Health Hub</span>
+          </div>
+        </div>
+        <div class="gis-links">
+          <div class="data-section-title">GIS Data Links</div>
+          <ul class="gis-link-list">
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.407,-80.010,14" target="_blank">↗ Arlington Boundary (PGH GIS Hub)</a></li>
+            <li><a href="https://www.hilltopurbanfarm.org/" target="_blank">↗ Hilltop Urban Farm (nearby)</a></li>
+            <li><a href="https://justharvest.org/advocacy/food-deserts/" target="_blank">↗ Just Harvest Food Desert Data</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="nbhd-map-panel">
+        <div class="map-overlay-label">Arlington — GIS View</div>
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3036.8!2d-80.010!3d40.407!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8834!2sArlington%2C%20Pittsburgh%2C%20PA!5e1!3m2!1sen!2sus!4v1699000000005"
+          allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+        <a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.407,-80.010,14" target="_blank" class="map-gis-btn">Open in GIS Hub ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. SPRING GARDEN -->
+  <div class="nbhd-card" data-type="green" id="spring-garden">
+    <div class="nbhd-card-header">
+      <div class="nbhd-header-left">
+        <div class="nbhd-name-row">
+          <h2 class="nbhd-title">Spring Garden</h2>
+          <span class="nbhd-tag green"><span class="nbhd-tag-dot"></span>Green Space Gap</span>
+        </div>
+        <p class="nbhd-summary">A thin, crescent-shaped neighborhood tucked into a steep valley on Pittsburgh's North Side, Spring Garden is described by its own residents as having "not a great deal of park space within walking distance." Between 1974 and 2010, vacancy spiked from 5% to 25% as the population fell from ~2,000 to ~800. The valley geography creates natural isolation — a condition urban theorists link to entrenched blight. No parks exist within the neighborhood itself; nearest green spaces require hill climbing or car access. Grocery options are similarly limited to a nearby Giant Eagle that most residents must drive to reach.</p>
+        <div class="vacant-pulse">
+          <div class="pulse-dot"></div>
+          <div class="pulse-text">25% vacancy rate (2010 census) — "The theme here is vacancy" (NinetyHoods urban blog)</div>
+        </div>
+        <div class="active-org">
+          <div class="active-org-label">Opportunity</div>
+          <div class="active-org-name">No established revitalization org currently active</div>
+          <div class="active-org-desc">Spring Garden presents a clear case for Land Bank acquisition of valley-floor vacant lots for green infrastructure. Proximity to Downtown (&lt;1 mile) makes it viable for investment if title barriers are cleared.</div>
+        </div>
+      </div>
+      <div class="nbhd-scores">
+        <div class="score-box">
+          <span class="score-val danger">25%</span>
+          <div class="score-label">Vacancy Rate<br>(2010 census)</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val warning">~0.6mi</span>
+          <div class="score-label">Distance to<br>Giant Eagle</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val danger">2/10</span>
+          <div class="score-label">Green Space<br>Access Score</div>
+        </div>
+      </div>
+    </div>
+    <div class="nbhd-card-body">
+      <div class="nbhd-data-panel">
+        <div class="metric-group">
+          <div class="data-section-title">Vacancy & Housing</div>
+          <div class="metric-row">
+            <span class="metric-key">Vacancy rate (2010 census)</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:50%"></div></div><span class="metric-val">~25%</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Population (2010 census)</span>
+            <div class="metric-right"><span class="metric-val">~800 (down from 2,000 in 1974)</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Current population estimate</span>
+            <div class="metric-right"><span class="metric-val">~1,047–2,992</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Median home value</span>
+            <div class="metric-right"><span class="metric-val">$94,000–$109,081</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Food Access</div>
+          <div class="metric-row">
+            <span class="metric-key">Named food desert by Post-Gazette</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">Yes</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Nearest grocery (Giant Eagle, due south)</span>
+            <div class="metric-right"><span class="metric-val">~0.6 mile, car-dependent</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">In-neighborhood retail</span>
+            <div class="metric-right"><span class="metric-val">Family Dollar only</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Green Space</div>
+          <div class="metric-row">
+            <span class="metric-key">Parks within Spring Garden proper</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">None</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Nearest green spaces (5-mile radius)</span>
+            <div class="metric-right"><span class="metric-val">Herrs Island North Park, Millvale Riverfront</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Valley floor vacancy — park potential</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">High opportunity</span></div>
+          </div>
+        </div>
+        <div class="recommend-group">
+          <div class="data-section-title">Recommended Revitalization</div>
+          <div class="recommend-items">
+            <span class="recommend-pill green">🌳 Valley-Floor Pocket Park</span>
+            <span class="recommend-pill green">🌿 Rain Garden / Stormwater Green</span>
+            <span class="recommend-pill housing">🏘 Land Bank Acquisition Priority</span>
+          </div>
+        </div>
+        <div class="gis-links">
+          <div class="data-section-title">GIS Data Links</div>
+          <ul class="gis-link-list">
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.462,-80.007,14" target="_blank">↗ Spring Garden Boundary (PGH GIS Hub)</a></li>
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/search?q=vacant+properties" target="_blank">↗ Vacant Property Dataset</a></li>
+            <li><a href="https://parkserve.tpl.org/downloads/pdfs/Pittsburgh_PA.pdf" target="_blank">↗ Pittsburgh ParkScore Index 2025 (Trust for Public Land)</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="nbhd-map-panel">
+        <div class="map-overlay-label">Spring Garden — GIS View</div>
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3033.0!2d-80.007!3d40.462!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8834!2sSpring%20Garden%2C%20Pittsburgh%2C%20PA!5e1!3m2!1sen!2sus!4v1699000000006"
+          allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+        <a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.462,-80.007,14" target="_blank" class="map-gis-btn">Open in GIS Hub ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. OAKLAND -->
+  <div class="nbhd-card" data-type="food" id="oakland">
+    <div class="nbhd-card-header">
+      <div class="nbhd-header-left">
+        <div class="nbhd-name-row">
+          <h2 class="nbhd-title">Oakland</h2>
+          <span class="nbhd-tag food"><span class="nbhd-tag-dot"></span>Food Desert</span>
+        </div>
+        <p class="nbhd-summary">Home to the University of Pittsburgh and Carnegie Mellon University, Oakland presents a paradox: a dense, educated, high-foot-traffic neighborhood with no full-service grocery store. The Giant Eagle on Centre Avenue closed in the 2000s and was never replaced. The closest supermarket is over a mile away in the South Side. Oakland residents are part of the 50% of Pittsburghers living in food deserts (City of Pittsburgh, 2021). The current Oakland Plan includes transportation infrastructure and affordable housing — but no grocery store. More than 100 restaurants serve the area, but restaurants don't meet the food needs of low-income residents or families.</p>
+        <div class="vacant-pulse">
+          <div class="pulse-dot"></div>
+          <div class="pulse-text">Oakland Plan approved — transportation + housing investments, but no grocery store included as of 2023</div>
+        </div>
+        <div class="active-org">
+          <div class="active-org-label">Key Gap</div>
+          <div class="active-org-name">No dedicated food access organization in Oakland</div>
+          <div class="active-org-desc">Pitt Pantry (student-run, bimonthly) and IGA on Forbes Ave (narrow aisles, no carts, no parking) are insufficient substitutes. A community-owned food co-op in a vacant commercial space would be transformative.</div>
+        </div>
+      </div>
+      <div class="nbhd-scores">
+        <div class="score-box">
+          <span class="score-val warning">~7%</span>
+          <div class="score-label">Owner-Occupancy<br>(Central Oakland)</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val danger">&gt;1mi</span>
+          <div class="score-label">Distance to<br>Full Grocery</div>
+        </div>
+        <div class="score-box">
+          <span class="score-val ok">6/10</span>
+          <div class="score-label">Green Space<br>Access Score</div>
+        </div>
+      </div>
+    </div>
+    <div class="nbhd-card-body">
+      <div class="nbhd-data-panel">
+        <div class="metric-group">
+          <div class="data-section-title">Vacancy & Housing</div>
+          <div class="metric-row">
+            <span class="metric-key">Owner-occupancy rate (Central Oakland)</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:7%"></div></div><span class="metric-val">~7%</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Renter-dominated tracts</span>
+            <div class="metric-right"><span class="metric-val">All Oakland tracts &lt;33% owned</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Affordable housing supply</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">Critically low</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Food Access</div>
+          <div class="metric-row">
+            <span class="metric-key">Full-service grocery stores in Oakland</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">0</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Nearest supermarket (Giant Eagle, South Side)</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:75%"></div></div><span class="metric-val">&gt;1 mile</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Target in East Liberty</span>
+            <div class="metric-right"><div class="metric-bar-wrap"><div class="metric-bar danger" style="width:90%"></div></div><span class="metric-val">&gt;2 miles</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">City food desert classification (2021)</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--rust)">50%+ residents affected</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">IGA Forbes Ave (partial substitute)</span>
+            <div class="metric-right"><span class="metric-val">No carts, no parking, narrow aisles</span></div>
+          </div>
+        </div>
+        <div class="metric-group">
+          <div class="data-section-title">Green Space</div>
+          <div class="metric-row">
+            <span class="metric-key">Schenley Park (adjacent)</span>
+            <div class="metric-right"><span class="metric-val" style="color:var(--sage)">456 acres — strong asset</span></div>
+          </div>
+          <div class="metric-row">
+            <span class="metric-key">Street-level green space</span>
+            <div class="metric-right"><span class="metric-val">Limited amid dense development</span></div>
+          </div>
+        </div>
+        <div class="recommend-group">
+          <div class="data-section-title">Recommended Revitalization</div>
+          <div class="recommend-items">
+            <span class="recommend-pill food">🛒 Community-Owned Food Co-op</span>
+            <span class="recommend-pill housing">🏘 Affordable Housing (mixed-use)</span>
+            <span class="recommend-pill green">🌳 Street-Level Green Infrastructure</span>
+          </div>
+        </div>
+        <div class="gis-links">
+          <div class="data-section-title">GIS Data Links</div>
+          <ul class="gis-link-list">
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.443,-79.954,14" target="_blank">↗ Oakland Boundary (PGH GIS Hub)</a></li>
+            <li><a href="https://storymaps.arcgis.com/stories/909e567bc6f141c2bac555aaeb034b50" target="_blank">↗ Health & Food Deserts Pittsburgh Story Map</a></li>
+            <li><a href="https://engage.pittsburghpa.gov/neighborhood-snapshots" target="_blank">↗ Oakland Neighborhood Snapshot</a></li>
+            <li><a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/search?q=parks" target="_blank">↗ Pittsburgh Parks Dataset</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="nbhd-map-panel">
+        <div class="map-overlay-label">Oakland — GIS View</div>
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3035.2!2d-79.954!3d40.443!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8834f1e4!2sOakland%2C%20Pittsburgh%2C%20PA!5e1!3m2!1sen!2sus!4v1699000000007"
+          allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+        <a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0/explore?location=40.443,-79.954,14" target="_blank" class="map-gis-btn">Open in GIS Hub ↗</a>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end cards -->
+</div><!-- end section -->
+
+<!-- FOOTER -->
+<div class="page-footer">
+  <div class="footer-logo">Pittsburgh <span>Revitalization</span> Project</div>
+  <div class="footer-links">
+    <a href="pittsburgh-revitalization.html">← Back to Home</a>
+    <a href="https://pghgishub-pittsburghpa.opendata.arcgis.com/" target="_blank">GIS Hub</a>
+    <a href="https://www.wprdc.org/" target="_blank">WPRDC Data</a>
+    <a href="https://justharvest.org/" target="_blank">Just Harvest</a>
+    <a href="https://www.pghhilltopalliance.org/" target="_blank">Hilltop Alliance</a>
+  </div>
+  <div class="footer-credit">Data: Pittsburgh GIS Hub · PublicSource · Center for Community Progress · USDA FARA · Trust for Public Land · Just Harvest</div>
+</div>
+
+<script>
+function filterCards(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.nbhd-card').forEach(card => {
+    if (type === 'all' || card.dataset.type === type) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+// Animate metric bars on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.querySelectorAll('.metric-bar').forEach(bar => {
+        const w = bar.style.width;
+        bar.style.width = '0';
+        setTimeout(() => { bar.style.width = w; }, 100);
+      });
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.nbhd-card').forEach(card => observer.observe(card));
+</script>
+</body>
+</html>
