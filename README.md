@@ -55,6 +55,8 @@ I use the site to argue that the best use for a vacant property depends on what 
 
 ## Neighborhood Profiles
 
+<img width="800" height="504" alt="prp1-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/1588c493-ca2c-48e2-b19b-154848603592" />
+
 Eight Pittsburgh neighborhoods profiled with vacancy data, food access distance, green space scores, and location-matched revitalization recommendations.
 
 | Neighborhood | Primary Need | Key Stat |
