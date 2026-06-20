@@ -1,9 +1,5 @@
 # PITTSBURGH REVITALIZATION PROJECT **→ [Live Site](https://casscadeofgraymatter.github.io/PITTSBURGHREVITALIZATIONPROJ./)** &nbsp;|&nbsp; Urban Data & Design
 
-> *Mapping where Pittsburgh's vacant properties are, what each neighborhood needs most, and how abandoned houses can become the community assets those neighborhoods are missing.*
-
----
-
 <img width="1242" height="796" alt="prpthumbnail" src="https://github.com/user-attachments/assets/860ab244-423a-419e-825a-481c10329750" />
 
 ---
